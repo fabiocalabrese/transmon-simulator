@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use("TkAgg")
+
 class TransmonSimulator:
     def __init__(self, wq, wd, V0, phi=0.0, envelope_type="gaussian",
                  mu=0.0, sigma=3.0, t0=0.0):
@@ -58,7 +59,7 @@ class TransmonSimulator:
         ax[1].grid(True)
 
         plt.tight_layout()
-        plt.show()
+        return fig
 
     # ---------- Drive Voltage ----------
     def voltage(self, t):
@@ -99,24 +100,24 @@ class TransmonSimulator:
         p0 = np.abs(self.psi_t[:, 0]) ** 2
         p1 = np.abs(self.psi_t[:, 1]) ** 2
 
-        plt.figure(figsize=(7, 4))
+        fig = plt.figure(figsize=(7, 4))
         plt.plot(tlist * 1e9, p0, label="|0⟩")
         plt.plot(tlist * 1e9, p1, label="|1⟩")
         plt.xlabel("Tempo (ns)")
         plt.ylabel("Popolazione")
         plt.legend()
         plt.grid(True)
-        plt.show()
+        return fig
 
 
 
 # Parametri
 wq = 1 * np.pi * 5e8       # 5 GHz
 wd = 1 * np.pi * 5e8       # drive risonante
-V0 = 1e8                   # ampiezza
+V0 = 1e8                  # ampiezza
 phi = 0.0
 mu = 25e-9                 # centro dell'impulso
-sigma = 5e-9               # larghezza impulso
+sigma = 13e-9               # larghezza impulso
 
 # Tempo e stato iniziale
 tlist = np.linspace(0, 50e-9, 2000)
@@ -126,5 +127,6 @@ psi0 = np.array([1, 0], dtype=complex)
 transmon = TransmonSimulator(wq, wd, V0, phi, "gaussian", mu, sigma)
 transmon_with_envelope = transmon.envelope(tlist)
 transmon.evolve(psi0, tlist)
-transmon.plot_populations(tlist)
-transmon.plot_envelope(tlist)
+fig1 = transmon.plot_populations(tlist)
+fig2 = transmon.plot_envelope(tlist)
+plt.show()
