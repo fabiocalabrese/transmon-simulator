@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from scipy.integrate import quad
+from scipy.optimize import root_scalar
 matplotlib.use("TkAgg")
 
 class TransmonSimulator:
@@ -30,6 +31,32 @@ class TransmonSimulator:
         self.sigma_y = np.array([[0, -1j], [1j, 0]], dtype=complex)
         self.sigma_z = np.array([[1, 0], [0, -1]], dtype=complex)
 
+    def set_pulse_rotation_numerical(self, theta, tmin, tmax, sigma_guess=1e-8):
+        """
+        Calcola numericamente sigma per ottenere una rotazione theta
+        considerando la troncatura dell'impulso su [tmin, tmax].
+
+        theta : angolo di rotazione desiderato (rad)
+        tmin, tmax : estremi del tempo della simulazione (s)
+        sigma_guess : valore iniziale per il solver (s)
+        """
+        if self.envelope_type != "gaussian":
+            raise ValueError("Il calcolo di sigma è disponibile solo per impulsi gaussiani.")
+
+        def integral_for_sigma(sigma):
+            func = lambda t: np.exp(-0.5 * ((t - self.mu) / sigma) ** 2)
+            val, _ = quad(func, tmin, tmax, limit=200)
+            return V0 * val
+
+        def objective(sigma):
+            return integral_for_sigma(sigma) - theta
+
+        sol = root_scalar(objective, bracket=[1e-12, 1e-6], method='brentq')
+        if not sol.converged:
+            raise RuntimeError("La ricerca di sigma non è convergente.")
+        self.sigma = sol.root
+
+        return self.sigma
     # ---------- Envelope ----------
     def envelope(self, t):
         if self.envelope_type == "gaussian":
@@ -153,19 +180,19 @@ class TransmonSimulator:
         return fig
 
 # Parametri
-wq = 1 * np.pi * 5e8       # 5 GHz
-wd = 1 * np.pi * 5e8       # drive risonante
-V0 = 1e8                  # ampiezza
-phi = 0
-mu = 25e-9                 # centro dell'impulso
-sigma = 6.27e-9               # larghezza impulso
+V0 = 1e8          # rad/s
+mu = 25e-9        # centro impulso
+theta = np.pi/2     # X-gate
+tmin, tmax = 0, 50e-9
 
 # Tempo e stato iniziale
 tlist = np.linspace(0, 50e-9, 2000)
 psi0 = np.array([1, 0], dtype=complex)
 
 # Simulazione
-transmon = TransmonSimulator(wq, wd, V0, phi, "gaussian", mu, sigma)
+transmon = TransmonSimulator(wq=2*np.pi*5e8, wd=2*np.pi*5e8, V0=V0, phi=np.pi, mu=mu, envelope_type="gaussian")
+sigma = transmon.set_pulse_rotation_numerical(theta, tmin, tmax)
+print(f"Sigma calcolato numericamente: {sigma*1e9:.3f} ")
 transmon_with_envelope = transmon.envelope(tlist)
 transmon.evolve(psi0, tlist)
 fig1 = transmon.plot_populations(tlist)
