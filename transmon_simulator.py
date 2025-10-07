@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 matplotlib.use("TkAgg")
 
 class TransmonSimulator:
@@ -109,15 +110,55 @@ class TransmonSimulator:
         plt.grid(True)
         return fig
 
+    def plot_bloch_trajectory(self, tlist):
+        # Matrici di Pauli
+        sx, sy, sz = self.sigma_x, self.sigma_y, self.sigma_z
 
+        # Calcola coordinate Bloch per ogni istante di tempo
+        bloch = np.array([
+            [np.vdot(psi, sx @ psi).real,
+             np.vdot(psi, sy @ psi).real,
+             np.vdot(psi, sz @ psi).real]
+            for psi in self.psi_t
+        ])
+
+        # Crea figura 3D
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # Traiettoria nel tempo
+        ax.plot(bloch[:, 0], bloch[:, 1], bloch[:, 2], color='tab:purple', lw=2)
+
+        # Punti di inizio (rosso) e fine (verde)
+        ax.scatter(bloch[0, 0], bloch[0, 1], bloch[0, 2],
+                   color='red', s=80, label='Inizio')
+        ax.scatter(bloch[-1, 0], bloch[-1, 1], bloch[-1, 2],
+                   color='green', s=80, label='Fine')
+
+        # Disegna la sfera di Bloch
+        u, v = np.mgrid[0:2 * np.pi:60j, 0:np.pi:30j]
+        x = np.cos(u) * np.sin(v)
+        y = np.sin(u) * np.sin(v)
+        z = np.cos(v)
+        ax.plot_wireframe(x, y, z, color='gray', alpha=0.2)
+
+        # Label e formato
+        ax.set_xlabel('⟨σx⟩')
+        ax.set_ylabel('⟨σy⟩')
+        ax.set_zlabel('⟨σz⟩')
+        ax.set_title("Traiettoria sulla Bloch Sphere")
+        ax.legend()
+        ax.set_box_aspect([1, 1, 1])  # sfera non distorta
+        plt.tight_layout()
+        return fig
 
 # Parametri
 wq = 1 * np.pi * 5e8       # 5 GHz
 wd = 1 * np.pi * 5e8       # drive risonante
 V0 = 1e8                  # ampiezza
-phi = 0.0
+phi = 0
 mu = 25e-9                 # centro dell'impulso
-sigma = 13e-9               # larghezza impulso
+sigma = 6.27e-9               # larghezza impulso
 
 # Tempo e stato iniziale
 tlist = np.linspace(0, 50e-9, 2000)
@@ -129,4 +170,6 @@ transmon_with_envelope = transmon.envelope(tlist)
 transmon.evolve(psi0, tlist)
 fig1 = transmon.plot_populations(tlist)
 fig2 = transmon.plot_envelope(tlist)
+fig3 = transmon.plot_bloch_trajectory(tlist)
 plt.show()
+
