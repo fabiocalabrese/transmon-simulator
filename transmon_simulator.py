@@ -7,7 +7,7 @@ matplotlib.use("TkAgg")
 
 class TransmonSimulator:
     def __init__(self, wq, wd, V0, phi=0.0, envelope_type="gaussian",
-                 mu=0.0, sigma=3.0, t0=0.0):
+                 mu=0.0, sigma=3.0, t0=0.0, rotating_frame=False):
         """
         wq: frequenza qubit (rad/s)
         wd: frequenza drive (rad/s)
@@ -25,6 +25,7 @@ class TransmonSimulator:
         self.mu = mu
         self.sigma = sigma
         self.t0 = t0
+        self.rotating_frame = rotating_frame
 
         # Matrici di Pauli
         self.sigma_x = np.array([[0, 1], [1, 0]], dtype=complex)
@@ -96,10 +97,22 @@ class TransmonSimulator:
 
     # ---------- Hamiltoniane ----------
     def H0(self):
-        return -0.5 * self.wq * self.sigma_z
-
+        if not self.rotating_frame:
+            return -0.5 * self.wq * self.sigma_z
+        else:
+            Delta = self.wq - self.wd
+            return -0.5 * Delta * self.sigma_z
     def Hd(self, t):
-        return self.voltage(t) * self.sigma_y
+        s = self.envelope(t)
+        I = np.cos(self.phi)
+        Q = np.sin(self.phi)
+
+        if not self.rotating_frame:
+            # Lab frame (oscillante)
+            return self.voltage(t) * self.sigma_y
+        else:
+            # Rotating frame (RWA): Omega è già incluso in V0
+            return -0.5 * self.V0 * s * (I * self.sigma_x + Q * self.sigma_y)
 
     def H(self, t):
         return self.H0() + self.Hd(t)
@@ -121,7 +134,7 @@ class TransmonSimulator:
             psi_t[i + 1] = psi_t[i] + (dt / 2) * (k1 + k2)
             psi_t[i + 1] /= np.linalg.norm(psi_t[i + 1])  # normalizza
         self.psi_t = psi_t
-        return psi_t
+        return psi_t[len(tlist)-1]
 
     # ---------- Plot popolazioni ----------
     def plot_populations(self, tlist):
@@ -180,7 +193,11 @@ class TransmonSimulator:
         return fig
 
 # Parametri
+
+wq = 2*np.pi*5e8
+wd = 2*np.pi*5e8
 V0 = 1e8          # rad/s
+phi = np.pi/2
 mu = 25e-9        # centro impulso
 theta = np.pi/2     # X-gate
 tmin, tmax = 0, 50e-9
@@ -189,14 +206,32 @@ tmin, tmax = 0, 50e-9
 tlist = np.linspace(0, 50e-9, 2000)
 psi0 = np.array([1, 0], dtype=complex)
 
+
 # Simulazione
-transmon = TransmonSimulator(wq=2*np.pi*5e8, wd=2*np.pi*5e8, V0=V0, phi=np.pi, mu=mu, envelope_type="gaussian")
+transmon = TransmonSimulator(wq=wq, wd=wd, V0=V0, phi=phi, mu=mu, envelope_type="gaussian", rotating_frame=False)
 sigma = transmon.set_pulse_rotation_numerical(theta, tmin, tmax)
 print(f"Sigma calcolato numericamente: {sigma*1e9:.3f} ")
 transmon_with_envelope = transmon.envelope(tlist)
-transmon.evolve(psi0, tlist)
+psi_final = transmon.evolve(psi0, tlist)
 fig1 = transmon.plot_populations(tlist)
 fig2 = transmon.plot_envelope(tlist)
 fig3 = transmon.plot_bloch_trajectory(tlist)
 plt.show()
 
+"""
+Second pulses
+
+theta2 = np.pi
+phi2 = 0
+# Simulazione
+transmon2 = TransmonSimulator(wq=wq, wd=wd, V0=V0, phi=phi2, mu=mu, envelope_type="gaussian", rotating_frame=True)
+sigma2 = transmon.set_pulse_rotation_numerical(theta2, tmin, tmax)
+print(f"Sigma2 calcolato numericamente: {sigma*1e9:.3f} ")
+transmon_with_envelope = transmon.envelope(tlist)
+transmon.evolve(psi_final, tlist)
+fig1 = transmon.plot_populations(tlist)
+fig2 = transmon.plot_envelope(tlist)
+fig3 = transmon.plot_bloch_trajectory(tlist)
+plt.show()
+
+"""
