@@ -40,7 +40,9 @@ This repository contains two Python projects for simulating quantum two-level sy
   Simulates a two-level transmon qubit controlled by a microwave pulse. Features include:
   - Pulse definition (`Pulse`) with Gaussian or rectangular envelopes
   - Numerical calibration of the pulse to achieve a target rotation angle (e.g., π for an X-gate)
-  - Qubit Hamiltonian and dynamics (`TransmonQubit`)
+  - Qubit Hamiltonian and dynamics (`TransmonQubit`), with the option to use:
+    - Rotating Wave Approximation (RWA)
+    - Full lab-frame Hamiltonian (non-RWA)
   - Time evolution via numerical integration of the Schrödinger equation (Heun method)
   - Analysis and visualization of results:
     - Populations of |0⟩ and |1⟩ states
