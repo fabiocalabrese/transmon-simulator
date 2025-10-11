@@ -96,3 +96,20 @@ python transmon_simulator.py
 **Fabio Calabrese**
 
 Primary contributions: understanding, analysis, and application of physical models; guided code development with AI assistance
+
+
+## Screenshots
+
+Simulation with the default parameters
+![JC](screenshots/jaynes-cummings.jpg)
+
+![pulse](screenshots/envelope.jpg)
+
+![qubit_population](screenshots/qubit_population.jpg)
+
+![bloch_no_rwa](screenshots/bloch_no_rwa.jpg)
+
+![qubit_population_rwa](screenshots/qubit_population_rwa.jpg)
+
+![bloch_rwa](screenshots/bloch_rwa.jpg)
+
