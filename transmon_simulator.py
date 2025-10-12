@@ -272,7 +272,7 @@ if __name__ == "__main__":
 
     # Create a Pulse instance (sigma is unknown for now)
     # We are simulating in the lab frame (non-RWA)
-    USE_ROTATING_FRAME = False
+    USE_ROTATING_FRAME = True
 
     if USE_ROTATING_FRAME:
         # In RWA, V0 directly corresponds to Rabi frequency Omega.
@@ -285,8 +285,9 @@ if __name__ == "__main__":
         pulse = Pulse(envelope_type="gaussian", V0=V0, wd=wd, phi=phi, mu=mu)
 
     # Calibrate the pulse to achieve the desired rotation
-    calculated_sigma = pulse.calibrate_for_rotation(theta_gate, (t_start, t_end))
-    print(f"Calibrated Gaussian sigma for a π-pulse: {calculated_sigma * 1e9:.3f} ns")
+    if pulse.envelope_type == "gaussian":
+        calculated_sigma = pulse.calibrate_for_rotation(theta_gate, (t_start, t_end))
+        print(f"Calibrated Gaussian sigma for a π-pulse: {calculated_sigma * 1e9:.3f} ns")
 
     # Create the Simulator instance
     simulator = Simulator(qubit, pulse, rotating_frame=USE_ROTATING_FRAME)
